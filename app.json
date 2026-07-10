@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Photos",
+    "name": "photos",
     "slug": "photos",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.photos",
+      "bundleIdentifier": "com.prafesorr.photos",
       "buildNumber": "1.0.0"
     },
     "android": {
@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.yourname.photos"
+      "package": "com.prafesorr.photos"
     },
     "web": {
       "favicon": "./assets/favicon.png"
