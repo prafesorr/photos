@@ -49,6 +49,24 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             COMPILER_INDEX_STORE_ENABLE=NO
 
+      - name: Verify JS bundle exists
+        run: |
+          APP_PATH=$(find ios/build -name "*.app" -type d | head -n1)
+          echo "App path: $APP_PATH"
+          BUNDLE_PATH="$APP_PATH/main.jsbundle"
+          if [ ! -f "$BUNDLE_PATH" ]; then
+            echo "ОШИБКА: main.jsbundle не найден внутри .app!"
+            ls -la "$APP_PATH"
+            exit 1
+          fi
+          BUNDLE_SIZE=$(stat -f%z "$BUNDLE_PATH")
+          echo "Размер бандла: $BUNDLE_SIZE байт"
+          if [ "$BUNDLE_SIZE" -lt 10000 ]; then
+            echo "ОШИБКА: main.jsbundle подозрительно маленький ($BUNDLE_SIZE байт) — похоже, бандлинг не сработал"
+            exit 1
+          fi
+          echo "OK: бандл на месте, размер нормальный"
+
       - name: Package to .ipa
         run: |
           mkdir -p Payload
