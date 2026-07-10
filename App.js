@@ -21,7 +21,63 @@ import PinPad from './src/components/PinPad';
 
 const { width } = Dimensions.get('window');
 
-export default function App() {
+// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК =====
+// Ловит и синхронные JS-ошибки, и необработанные промисы, чтобы вместо
+// чёрного экрана показать текст ошибки — временная диагностика.
+let errorListeners = [];
+function reportGlobalError(err) {
+  const message = err?.message || String(err);
+  const stack = err?.stack || '';
+  errorListeners.forEach((fn) => fn(message + '\n\n' + stack));
+}
+
+if (typeof ErrorUtils !== 'undefined') {
+  const originalHandler = ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((err, isFatal) => {
+    reportGlobalError(err);
+    // не вызываем originalHandler — иначе приложение всё равно упадёт молча
+  });
+}
+
+if (typeof global !== 'undefined') {
+  const originalRejectionHandler = global.onunhandledrejection;
+  global.onunhandledrejection = (event) => {
+    reportGlobalError(event?.reason || event);
+    if (originalRejectionHandler) originalRejectionHandler(event);
+  };
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { caughtError: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { caughtError: error };
+  }
+  componentDidCatch(error, info) {
+    console.error('ErrorBoundary caught:', error, info);
+  }
+  render() {
+    if (this.state.caughtError) {
+      return (
+        <View style={styles.crashScreen}>
+          <Text style={styles.crashTitle}>Ошибка рендера (ErrorBoundary)</Text>
+          <Text style={styles.crashText}>
+            {this.state.caughtError?.message || String(this.state.caughtError)}
+          </Text>
+          <Text style={styles.crashText}>
+            {this.state.caughtError?.stack || ''}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+// ===== КОНЕЦ ГЛОБАЛЬНОГО ПЕРЕХВАТА =====
+
+function AppInner() {
   const [photos, setPhotos] = useState([]);
   const [secretPhotos, setSecretPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +86,7 @@ export default function App() {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerPhotos, setViewerPhotos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [viewerKey, setViewerKey] = useState(0); // растёт при каждом открытии — заставляет PhotoViewer пересоздаваться
+  const [viewerKey, setViewerKey] = useState(0);
 
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -45,7 +101,16 @@ export default function App() {
   const pinPadRef = useRef(null);
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
-  const isBusyRef = useRef(false); // защита от повторного/двойного запуска операций с файлами
+  const isBusyRef = useRef(false);
+
+  // подписка на глобальные ошибки (асинхронные/необработанные промисы)
+  useEffect(() => {
+    const listener = (msg) => setError(msg);
+    errorListeners.push(listener);
+    return () => {
+      errorListeners = errorListeners.filter((fn) => fn !== listener);
+    };
+  }, []);
 
   useEffect(() => {
     initApp();
@@ -64,7 +129,7 @@ export default function App() {
       }
     } catch (e) {
       console.error('Init error:', e);
-      setError(e.message);
+      setError((e?.message || String(e)) + '\n\n' + (e?.stack || ''));
       setLoading(false);
     }
   };
@@ -82,7 +147,7 @@ export default function App() {
       setTrashPhotos(isSecretMode ? secretTrash : trash);
     } catch (e) {
       console.error('Load error:', e);
-      setError(e.message);
+      setError((e?.message || String(e)) + '\n\n' + (e?.stack || ''));
     } finally {
       setLoading(false);
     }
@@ -97,7 +162,6 @@ export default function App() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      // лимит убран — можно выбрать сколько угодно фото за раз
       quality: 1,
     });
 
@@ -124,7 +188,6 @@ export default function App() {
     if (selectedIds.size === 0 || isBusyRef.current) return;
 
     const currentPhotos = isSecretMode ? secretPhotos : photos;
-    // фиксируем список id сразу, чтобы состояние не "уехало" пока висит Alert
     const idsToDelete = Array.from(selectedIds);
     const secretModeAtStart = isSecretMode;
 
@@ -135,7 +198,7 @@ export default function App() {
         {
           text: 'Удалить', style: 'destructive',
           onPress: async () => {
-            if (isBusyRef.current) return; // защита от двойного нажатия
+            if (isBusyRef.current) return;
             isBusyRef.current = true;
             setLoading(true);
 
@@ -157,8 +220,6 @@ export default function App() {
               } catch (e) {
                 console.error('Delete error for photo', id, e);
                 failedNames.push(photo.filename);
-                // Важно: файл и запись в БД НЕ трогаем, если перенос в корзину
-                // не удался — фото просто останется на месте, а не потеряется
               }
             }
 
@@ -284,7 +345,7 @@ export default function App() {
     const currentList = isSecretMode ? secretPhotos : photos;
     setViewerPhotos(currentList);
     setCurrentIndex(index);
-    setViewerKey((k) => k + 1); // новый key — PhotoViewer пересоздастся с чистого листа
+    setViewerKey((k) => k + 1);
     setViewerVisible(true);
   };
 
@@ -295,7 +356,6 @@ export default function App() {
     }
   };
 
-  // Face ID без системного пароля
   const tryFaceId = async () => {
     try {
       const compatible = await LocalAuthentication.hasHardwareAsync();
@@ -306,7 +366,7 @@ export default function App() {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Вход в секретный альбом',
         cancelLabel: 'Использовать PIN',
-        disableDeviceFallback: true, // <-- БЕЗ системного пароля!
+        disableDeviceFallback: true,
       });
 
       return result.success;
@@ -386,9 +446,10 @@ export default function App() {
 
   if (error) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={styles.crashScreen}>
         <Ionicons name="warning-outline" size={50} color="#ff453a" />
-        <Text style={styles.errorText}>Ошибка: {error}</Text>
+        <Text style={styles.crashTitle}>Ошибка</Text>
+        <Text style={styles.crashText}>{error}</Text>
       </View>
     );
   }
@@ -402,7 +463,6 @@ export default function App() {
     );
   }
 
-  // Корзина
   if (showTrash) {
     return (
       <SafeAreaView style={styles.container}>
@@ -452,7 +512,6 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
-      {/* PIN Modal */}
       <Modal
         visible={showPinModal}
         transparent={false}
@@ -467,7 +526,6 @@ export default function App() {
         />
       </Modal>
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={isSecretMode ? exitSecretMode : null}
@@ -538,7 +596,6 @@ export default function App() {
         </View>
       </View>
 
-      {/* Grid */}
       {currentPhotos.length === 0 ? (
         <TouchableOpacity
           style={styles.empty}
@@ -568,7 +625,6 @@ export default function App() {
         />
       )}
 
-      {/* Viewer */}
       <PhotoViewer
         key={viewerKey}
         visible={viewerVisible}
@@ -581,11 +637,24 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   center: { justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { color: '#fff', marginTop: 16, fontSize: 16 },
-  errorText: { color: '#ff453a', marginTop: 16, fontSize: 16, textAlign: 'center' },
+  crashScreen: {
+    flex: 1, backgroundColor: '#1a0000', justifyContent: 'center',
+    alignItems: 'center', padding: 20, paddingTop: 60,
+  },
+  crashTitle: { color: '#ff453a', fontSize: 18, fontWeight: '700', marginTop: 12, marginBottom: 12 },
+  crashText: { color: '#fff', fontSize: 12, textAlign: 'left' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
