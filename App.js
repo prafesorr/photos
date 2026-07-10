@@ -7,7 +7,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as FileSystem from 'expo-file-system';
 import {
   initDB, addPhoto, getPhotos, deletePhoto,
   addSecretPhoto, getSecretPhotos, deleteSecretPhoto,

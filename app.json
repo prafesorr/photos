@@ -30,7 +30,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Разрешите $(PRODUCT_NAME) доступ к фото, чтобы добавлять их в приложение."
+        }
+      ]
     ]
   }
 }

@@ -1,4 +1,7 @@
-import * as FileSystem from 'expo-file-system';
+// В SDK 54 старые методы (getInfoAsync, copyAsync и т.д.) нужно
+// импортировать из legacy-модуля. Импорт из expo-file-system приводит к
+// ошибке во время запуска production-сборки.
+import * as FileSystem from 'expo-file-system/legacy';
 
 export const PHOTOS_DIR = FileSystem.documentDirectory + 'photos/';
 export const SECRET_DIR = FileSystem.documentDirectory + 'secret/';
