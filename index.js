@@ -1,8 +1,32 @@
 import { registerRootComponent } from 'expo';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 
-import App from './App';
+let App;
+let loadError = null;
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+try {
+  App = require('./App').default;
+} catch (e) {
+  loadError = e;
+}
+
+function CrashFallback() {
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
+        <Text style={styles.title}>Ошибка при загрузке App.js</Text>
+        <Text style={styles.text}>{loadError?.message || String(loadError)}</Text>
+        <Text style={styles.text}>{loadError?.stack || ''}</Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#1a0000' },
+  title: { color: '#ff453a', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  text: { color: '#fff', fontSize: 12, marginTop: 8 },
+});
+
+registerRootComponent(App || CrashFallback);
