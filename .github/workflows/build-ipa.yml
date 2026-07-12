@@ -30,11 +30,14 @@ jobs:
           echo "=== Файлы в assets/ (исходники) ==="
           ls -la assets/
           echo ""
-          echo "=== Сгенерированный SplashScreen storyboard ==="
-          find ios -iname "*splash*" -o -iname "*Splash*"
+          echo "=== Содержимое SplashScreenLegacy.imageset ==="
+          find ios -path "*SplashScreenLegacy.imageset*" -exec ls -la {} \;
           echo ""
-          echo "=== Содержимое Images.xcassets на предмет splash ==="
-          find ios -path "*Images.xcassets*" -iname "*splash*"
+          echo "=== Содержимое Contents.json внутри imageset ==="
+          cat ios/*/Images.xcassets/SplashScreenLegacy.imageset/Contents.json 2>/dev/null || echo "файл не найден"
+          echo ""
+          echo "=== Содержимое SplashScreen.storyboard ==="
+          cat ios/*/SplashScreen.storyboard
 
       - name: Install CocoaPods
         run: |
