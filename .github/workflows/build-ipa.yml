@@ -25,23 +25,6 @@ jobs:
       - name: Expo Prebuild (Generate iOS folder)
         run: npx expo prebuild --platform ios --clean
 
-      - name: Inspect generated splash assets
-        run: |
-          echo "=== ХЭШ исходного splash-icon.png (для сверки) ==="
-          shasum -a 256 assets/splash-icon.png
-          echo ""
-          echo "=== Файлы в assets/ (исходники) ==="
-          ls -la assets/
-          echo ""
-          echo "=== ХЭШ итогового image.png в imageset ==="
-          shasum -a 256 ios/*/Images.xcassets/SplashScreenLegacy.imageset/image.png 2>/dev/null || echo "файл не найден"
-          
-      - name: Upload generated splash image for inspection
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-splash-image
-          path: ios/*/Images.xcassets/SplashScreenLegacy.imageset/image.png
-
       - name: Install CocoaPods
         run: |
           cd ios
