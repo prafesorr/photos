@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "photkost'",
+    "name": "photkost",
     "slug": "photos",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.prafesorr.photos",
-      "buildNumber": "1.0.1"
+      "buildNumber": "1.0.2"
     },
     "android": {
       "adaptiveIcon": {
