@@ -25,6 +25,17 @@ jobs:
       - name: Expo Prebuild (Generate iOS folder)
         run: npx expo prebuild --platform ios --clean
 
+      - name: Inspect generated splash assets
+        run: |
+          echo "=== Файлы в assets/ (исходники) ==="
+          ls -la assets/
+          echo ""
+          echo "=== Сгенерированный SplashScreen storyboard ==="
+          find ios -iname "*splash*" -o -iname "*Splash*"
+          echo ""
+          echo "=== Содержимое Images.xcassets на предмет splash ==="
+          find ios -path "*Images.xcassets*" -iname "*splash*"
+
       - name: Install CocoaPods
         run: |
           cd ios
