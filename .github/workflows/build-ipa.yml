@@ -27,17 +27,14 @@ jobs:
 
       - name: Inspect generated splash assets
         run: |
+          echo "=== ХЭШ исходного splash-icon.png (для сверки) ==="
+          shasum -a 256 assets/splash-icon.png
+          echo ""
           echo "=== Файлы в assets/ (исходники) ==="
           ls -la assets/
           echo ""
-          echo "=== Содержимое SplashScreenLegacy.imageset ==="
-          find ios -path "*SplashScreenLegacy.imageset*" -exec ls -la {} \;
-          echo ""
-          echo "=== Содержимое Contents.json внутри imageset ==="
-          cat ios/*/Images.xcassets/SplashScreenLegacy.imageset/Contents.json 2>/dev/null || echo "файл не найден"
-          echo ""
-          echo "=== Содержимое SplashScreen.storyboard ==="
-          cat ios/*/SplashScreen.storyboard
+          echo "=== ХЭШ итогового image.png в imageset ==="
+          shasum -a 256 ios/*/Images.xcassets/SplashScreenLegacy.imageset/image.png 2>/dev/null || echo "файл не найден"
 
       - name: Install CocoaPods
         run: |
