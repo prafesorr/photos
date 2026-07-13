@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import {
   initDB, addPhoto, getPhotos, deletePhoto,
   addSecretPhoto, getSecretPhotos, deleteSecretPhoto,
@@ -21,9 +22,7 @@ import PinPad from './src/components/PinPad';
 
 const { width } = Dimensions.get('window');
 
-// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК =====
-// Ловит и синхронные JS-ошибки, и необработанные промисы, чтобы вместо
-// чёрного экрана показать текст ошибки — временная диагностика.
+// ===== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК (диагностика, оставляем) =====
 let errorListeners = [];
 function reportGlobalError(err) {
   const message = err?.message || String(err);
@@ -32,10 +31,8 @@ function reportGlobalError(err) {
 }
 
 if (typeof ErrorUtils !== 'undefined') {
-  const originalHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((err, isFatal) => {
     reportGlobalError(err);
-    // не вызываем originalHandler — иначе приложение всё равно упадёт молча
   });
 }
 
@@ -103,7 +100,41 @@ function AppInner() {
   const tapTimer = useRef(null);
   const isBusyRef = useRef(false);
 
-  // подписка на глобальные ошибки (асинхронные/необработанные промисы)
+  // ===== Share Extension: приём фото из других приложений =====
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
+
+  useEffect(() => {
+    if (!hasShareIntent) return;
+
+    const handleSharedPhotos = async () => {
+      const files = shareIntent?.files || [];
+      if (files.length === 0) {
+        resetShareIntent();
+        return;
+      }
+
+      setLoading(true);
+      for (const file of files) {
+        try {
+          const { filename, uri } = await copyPhoto(file.path, isSecretMode);
+          if (isSecretMode) {
+            await addSecretPhoto(filename, uri);
+          } else {
+            await addPhoto(filename, uri);
+          }
+        } catch (e) {
+          console.error('Share import error:', e);
+        }
+      }
+      await loadAllPhotos();
+      setLoading(false);
+      resetShareIntent();
+    };
+
+    handleSharedPhotos();
+  }, [hasShareIntent]);
+  // ===== конец блока Share Extension =====
+
   useEffect(() => {
     const listener = (msg) => setError(msg);
     errorListeners.push(listener);
@@ -639,9 +670,11 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AppInner />
-    </ErrorBoundary>
+    <ShareIntentProvider>
+      <ErrorBoundary>
+        <AppInner />
+      </ErrorBoundary>
+    </ShareIntentProvider>
   );
 }
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "photkost'",
     "slug": "photos",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,15 +16,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.prafesorr.photos",
-      "buildNumber": "1.0.2"
+      "bundleIdentifier": "com.prafesorr.photosv2",
+      "buildNumber": "1.0.3"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.prafesorr.photos"
+      "package": "com.prafesorr.photosv2"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +37,15 @@
           "photosPermission": "Разрешите $(PRODUCT_NAME) доступ к фото, чтобы добавлять их в приложение."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 20
+          }
+        }
+      ]
     ]
   }
 }
